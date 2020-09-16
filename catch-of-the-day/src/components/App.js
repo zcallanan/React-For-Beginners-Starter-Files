@@ -4,12 +4,40 @@ import Inventory from './Inventory';
 import Order from './Order';
 import Fish from './Fish';
 import sampleFishes from '../sample-fishes';
+import base from '../base';
 
 class App extends React.Component {
   // Initial empty state
   state = {
     fishes: {},
     order: {}
+  };
+
+  // syncing a store's fishes to firebase db
+  componentDidMount() {
+    const { params } = this.props.match; // destructured object
+    // First reinstate order state from local storage
+    const localStorageRef = localStorage.getItem(params.storeId);
+    if (localStorageRef) {
+      this.setState({ order: JSON.parse(localStorageRef) });
+    }
+    // sync fishes state to firebase
+    this.ref = base.syncState(`${params.storeId}/fishes`, {
+      context: this,
+      state: 'fishes'
+    });
+  }
+
+  componentDidUpdate() {
+    // on component Order update, save latest order as a string to local storage
+    const { params } = this.props.match;
+    localStorage.setItem(params.storeId, JSON.stringify(this.state.order));
+    console.log('it updated!');
+  }
+
+  // Cleans up listening for state changes if the app's store is no longer mounted, preventing a leak
+  componentWillUnmount() {
+    base.removeBinding(this.ref);
   }
 
   // Update state method, to be called in AddFishForm two levels down
